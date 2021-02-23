@@ -14,6 +14,9 @@ from BitVector import *
 from gen_key_schedule import *
 from gen_tables import *
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 AES_modulus = BitVector(bitstring='100011011')
 
 subBytes = [ 99, 124, 119, 123, 242, 107, 111, 197,  48,   1, 103,  43, 254, 215, 171, 118, 202, 130, 201, 125,
@@ -45,9 +48,6 @@ invSubBytes = [ 82,   9, 106, 213,  48,  54, 165,  56, 191,  64, 163, 158, 129, 
 
 def mix_cols(state):
     # convert state array to hex instead of hexstrings
-    for i in range(4):
-        for j in range(4):
-            state[i][j] = BitVector(hexstring=state[i][j].lstrip("0x"))
     hex2 = BitVector(hexstring='02')
     hex3 = BitVector(hexstring='03')
     mixed = [[0 for i in range(4)] for j in range(4)]
@@ -58,76 +58,75 @@ def mix_cols(state):
         mixed[3][j] = (state[0][j].gf_multiply_modular(hex3, AES_modulus, 8)) ^ state[1][j] ^ state[2][j] ^ (state[3][j].gf_multiply_modular(hex2, AES_modulus, 8))
     return mixed 
 
-def strArray_to_bv(state_arr):
-    merged = ''
-    for i in range(4):
-        for j in range(4):
-            hexstr_bv = BitVector(hexstring=state_arr[i][j].lstrip("0x"))
-            merged += hexstr_bv.get_bitvector_in_hex()
-    return BitVector(hexstring=merged)
-
 def array_to_bv(state_arr):
-    merged = ''
-    for i in range(4):
-        for j in range(4):
-            hexstr_bv = state_arr[i][j]
-            merged += hexstr_bv.get_bitvector_in_hex()
-    return BitVector(hexstring=merged)
+    merged = BitVector(size=0)
+    for j in range(4):
+        for i in range(4):
+            merged += state_arr[i][j]
+    return merged
 
-def encrypt(message, _key):
-    print("Getting round keys")
+def encrypt(message, _key, outfile):
+    print("Getting Roundkeys")
     # generate key schedule + round keys
+    FILEOUT = open(outfile, 'w')
     FILEIN = open(_key, 'r')
     key = FILEIN.read().replace('\n','')
     key_bv = BitVector(textstring=key)
     key_words = gen_key_schedule_256(key_bv)
     round_keys = [None for i in range(15)]
     for i in range(15):
-        round_keys[i] = key_words[i*4].get_bitvector_in_hex() + key_words[i*4+1].get_bitvector_in_hex() + key_words[i*4+2].get_bitvector_in_hex() + key_words[i*4+3].get_bitvector_in_hex()
-    for i in range(15):
-        round_keys[i] = BitVector(hexstring=round_keys[i])
-
+        round_keys[i] = key_words[i*4] + key_words[i*4+1] + key_words[i*4+2] + key_words[i*4+3]
     # open the file
     ptext_bv = BitVector(filename=message)
 
     # get the sbox for encryption
-    print("Getting subBytes table")
+    print("Getting SubBytes Table")
     #subBytes = genTables('-e')
 
     # initalize empty array
     state_arr = [[0 for i in range(4)] for j in range(4)]
 
-    print("Encrypting...")
+    print("Starting AES Encryption")
     # get 128 bit block from plaintext
     while (ptext_bv.more_to_read):
         part_bv = ptext_bv.read_bits_from_file(128)
         # make sure it's 128 bits long
         part_bv.pad_from_right(128-part_bv.length())
-        # xor with the first roundkey
-        part_bv = part_bv ^ round_keys[0]
-        print(part_bv.get_bitvector_in_hex())
+        # xor with the first roundkey 
+        part_bv = part_bv ^ round_keys[0]                                 
         # create the state array
         for i in range(4):
             for j in range(4):
                 # this is a bitvector -> 4x4 array instruction
-                state_arr[j][i] = hex(part_bv[32*i + 8*j:32*i + 8*(j+1)].int_val())
-        # each round has 4 steps: (256 bit key size = 14 rounds)
-        # 1. Single-byte based substitution
-        for i in range(4):
-            for j in range(4):
-                state_arr[i][j] = hex(subBytes[int(state_arr[i][j], 0)])
-        ###state_bv = strArray_to_bv(state_arr)
-        ###print(state_bv.get_bitvector_in_hex())
-        ###break
-        # 2. Row-wise permutation
-        for shift in range(1, 4):
-            state_arr[shift] = state_arr[shift][shift:] + state_arr[shift][:shift]
-        # 3. Column-wise mixing
-        state_arr = mix_cols(state_arr)
-        # 4. Addition of the roundkey
-        state_bv = array_to_bv(state_arr)
-        state_bv = state_bv ^ round_keys[1]
-        break
+                state_arr[j][i] = part_bv[32*i + 8*j:32*i + 8*(j+1)] 
+        for rnd in range(1, 15):      
+            # each round has 4 steps: (256 bit key size = 14 rounds)
+            # 1. Single-byte based substitution 
+            for i in range(4):
+                for j in range(4):
+                    addTo = int(subBytes[int(state_arr[i][j])])
+                    state_arr[i][j] = BitVector(intVal=addTo, size=8)                   
+            # 2. Row-wise permutation 
+            state_arr[1] = state_arr[1][1:] + state_arr[1][:1]
+            state_arr[2] = state_arr[2][2:] + state_arr[2][:2]
+            state_arr[3] = state_arr[3][3:] + state_arr[3][:3]
+            
+            # 3. Column-wise mixing
+            if (rnd != 14):
+                state_arr = mix_cols(state_arr)
+                                          
+            # 4. Addition of the roundkey
+            state_bv = array_to_bv(state_arr)
+            state_bv = state_bv ^ round_keys[rnd]
+
+            # Making it a state array again                            
+            for i in range(4):
+                for j in range(4):
+                    # this is a bitvector -> 4x4 array instruction
+                    state_arr[j][i] = state_bv[32*i + 8*j:32*i + 8*(j+1)]
+        
+        FILEOUT.write(state_bv.get_bitvector_in_hex())
+    print("\nFinished!")
 
 def main():
     if (len(sys.argv) != 5):
@@ -135,7 +134,7 @@ def main():
         sys.exit(0)
     if (sys.argv[1] == '-e'):
         # encrypt mode
-        encrypt(sys.argv[2], sys.argv[3])
+        encrypt(sys.argv[2], sys.argv[3], sys.argv[4])
     elif (sys.argv[1] == '-d'):
         # decrypt mode
         print("Decrypting...")
