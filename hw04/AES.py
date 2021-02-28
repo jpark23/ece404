@@ -208,6 +208,7 @@ def decrypt(c_text, _key, outfile):
             
                 # 4. Inverse Column-wise mixing
                 state_arr = inv_mix_cols(state_arr)
+        print(state_bv.get_bitvector_in_ascii())
         FILEOUT.write(state_bv.get_bitvector_in_hex())
     print("\nFinished!")
 
