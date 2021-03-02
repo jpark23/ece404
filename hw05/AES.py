@@ -82,19 +82,19 @@ def array_to_bv(state_arr):
             merged += state_arr[i][j]
     return merged
 
-def encrypt(message, _key, outfile):
+def encrypt(ptext_bv, _key):
     print("Getting Roundkeys")
     # generate key schedule + round keys
-    FILEOUT = open(outfile, 'w')
     FILEIN = open(_key, 'r')
     key = FILEIN.read().replace('\n','')
     key_bv = BitVector(textstring=key)
-    key_words = gen_key_schedule_256(key_bv)
-    round_keys = [None for i in range(15)]
-    for i in range(15):
+    key_words = gen_key_schedule_128(key_bv)
+    round_keys = [None for i in range(11)]
+    for i in range(11):
         round_keys[i] = key_words[i*4] + key_words[i*4+1] + key_words[i*4+2] + key_words[i*4+3]
-    # open the file
-    ptext_bv = BitVector(filename=message)
+
+    # empty bitvector
+    out_bv = BitVector(size=0)
 
     # get the sbox for encryption
     print("Getting SubBytes Table")
@@ -103,12 +103,12 @@ def encrypt(message, _key, outfile):
     # initalize empty array
     state_arr = [[0 for i in range(4)] for j in range(4)]
 
-    print("Starting AES Encryption")
-    # get 128 bit block from plaintext
+    print("Starting AES Encryption") # TODO - check if 256-128 means that read 64 bits instead of 128W
+    # get 64 bit block from plaintext
     while (ptext_bv.more_to_read):
-        part_bv = ptext_bv.read_bits_from_file(128)
-        # make sure it's 128 bits long
-        part_bv.pad_from_right(128-part_bv.length())
+        part_bv = ptext_bv.read_bits_from_file(64)
+        # make sure it's 64 bits long
+        part_bv.pad_from_right(64-part_bv.length())
         # xor with the first roundkey 
         part_bv = part_bv ^ round_keys[0]                                 
         # create the state array
@@ -116,7 +116,7 @@ def encrypt(message, _key, outfile):
             for j in range(4):
                 # this is a bitvector -> 4x4 array instruction
                 state_arr[j][i] = part_bv[32*i + 8*j:32*i + 8*(j+1)] 
-        for rnd in range(1, 15):      
+        for rnd in range(1, 11):      
             # each round has 4 steps: (256 bit key size = 14 rounds)
             # 1. Single-byte based substitution 
             for i in range(4):
@@ -129,7 +129,7 @@ def encrypt(message, _key, outfile):
             state_arr[3] = state_arr[3][3:] + state_arr[3][:3]
             
             # 3. Column-wise mixing
-            if (rnd != 14):
+            if (rnd != 11):
                 state_arr = mix_cols(state_arr)
                                           
             # 4. Addition of the roundkey
@@ -142,22 +142,24 @@ def encrypt(message, _key, outfile):
                     # this is a bitvector -> 4x4 array instruction
                     state_arr[j][i] = state_bv[32*i + 8*j:32*i + 8*(j+1)]
         
-        FILEOUT.write(state_bv.get_bitvector_in_hex())
+        # FILEOUT.write(state_bv.get_bitvector_in_hex())
+        out_bv += state_bv
     print("\nFinished!")
+    return out_bv
 
-def decrypt(c_text, _key, outfile):
+def decrypt(c_text_bv, _key): 
     print("Getting Inverse Roundkeys")
     # generate key schedule + round keys
-    FILEOUT = open(outfile, 'w')
     FILEIN = open(_key, 'r')
     key = FILEIN.read().replace('\n','')
     key_bv = BitVector(textstring=key)
-    key_words = gen_key_schedule_256(key_bv)
-    round_keys = [None for i in range(15)]
-    for i in range(15):
+    key_words = gen_key_schedule_128(key_bv)
+    round_keys = [None for i in range(11)]
+    for i in range(11):
         round_keys[i] = key_words[i*4] + key_words[i*4+1] + key_words[i*4+2] + key_words[i*4+3]
-    # open the file
-    FILEIN2 = open(c_text, 'r')
+
+    # empty_bv
+    out_bv = BitVector(size=0)
 
     # get the sbox for encryption
     print("Getting Inverse SubBytes Table")
@@ -167,23 +169,22 @@ def decrypt(c_text, _key, outfile):
     state_arr = [[0 for i in range(4)] for j in range(4)]
 
     print("Starting AES Decryption")
-    # get 128 bit block from plaintext
+    # get 32 bit block from plaintext
     while (1):
-        read = FILEIN2.read(32)
-        part_bv = BitVector(hexstring=read)
-        if (part_bv.length() <= 0):
+        c_text_bv
+        if (c_text_bv.length() <= 0):
             break
-        # make sure it's 128 bits long
-        part_bv.pad_from_right(128-part_bv.length())
+        # make sure it's 32 bits long
+        c_text_bv.pad_from_right(32-c_text_bv.length())
         # xor with the first roundkey 
-        part_bv = part_bv ^ round_keys[14]                                 
+        c_text_bv = c_text_bv ^ round_keys[14]                                 
         # create the state array
         for i in range(4):
             for j in range(4):
                 # this is a bitvector -> 4x4 array instruction
-                state_arr[j][i] = part_bv[32*i + 8*j:32*i + 8*(j+1)] 
-        for rnd in range(13, -1, -1):      
-            # each round has 4 steps: (256 bit key size = 14 rounds)
+                state_arr[j][i] = c_text_bv[32*i + 8*j:32*i + 8*(j+1)] 
+        for rnd in range(9, -1, -1):      
+            # each round has 4 steps: (128 bit key size = 14 rounds)
             # 1. Inverse Row-wise permutation 
             state_arr[1] = state_arr[1][-1:] + state_arr[1][:-1]
             state_arr[2] = state_arr[2][-2:] + state_arr[2][:-2]
@@ -208,9 +209,9 @@ def decrypt(c_text, _key, outfile):
             
                 # 4. Inverse Column-wise mixing
                 state_arr = inv_mix_cols(state_arr)
-        print(state_bv.get_bitvector_in_ascii())
-        FILEOUT.write(state_bv.get_bitvector_in_hex())
+        out_bv += array_to_bv(state_arr)
     print("\nFinished!")
+    return out_bv
 
 def main():
     if (len(sys.argv) != 5):
@@ -218,9 +219,11 @@ def main():
         sys.exit(0)
     if (sys.argv[1] == '-e'):
         # encrypt mode
+        print("Encrypting with AES...")
         encrypt(sys.argv[2], sys.argv[3], sys.argv[4])
     elif (sys.argv[1] == '-d'):
         # decrypt mode
+        print("Decrypting with AES...")
         decrypt(sys.argv[2], sys.argv[3], sys.argv[4])
 
 main()
