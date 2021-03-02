@@ -20,8 +20,8 @@ AES_modulus = BitVector(bitstring='100011011')
 def gen_key_schedule(key):
     key_words = []
     key_bv = BitVector(textstring=key)
-    keysize = 256    
-    key_words = gen_key_schedule_256(key_bv)
+    keysize = 128    
+    key_words = gen_key_schedule_128(key_bv)
     key_schedule = []
     #print("\nEach 32-bit word of the key schedule is shown as a sequence of 4 one-byte integers:")
     for word_index,word in enumerate(key_words):
@@ -79,6 +79,24 @@ def gen_key_schedule_256(key_bv):
             key_words[i] = key_words[i-8] ^ key_words[i-1]
         else:
             sys.exit("error in key scheduling algo for i = %d" % i)
+    return key_words
+
+def gen_key_schedule_128(key_bv):
+    byte_sub_table = gen_subbytes_table()
+    #  We need 44 keywords in the key schedule for 128 bit AES.  Each keyword is 32-bits
+    #  wide. The 128-bit AES uses the first four keywords to xor the input block with.
+    #  Subsequently, each of the 10 rounds uses 4 keywords from the key schedule. We will
+    #  store all 44 keywords in the following list:
+    key_words = [None for i in range(44)]
+    round_constant = BitVector(intVal = 0x01, size=8)
+    for i in range(4):
+        key_words[i] = key_bv[i*32 : i*32 + 32]
+    for i in range(4,44):
+        if i%4 == 0:
+            kwd, round_constant = gee(key_words[i-1], round_constant, byte_sub_table)
+            key_words[i] = key_words[i-4] ^ kwd
+        else:
+            key_words[i] = key_words[i-4] ^ key_words[i-1]
     return key_words
 
 def gen_subbytes_table():

@@ -4,8 +4,8 @@
 # ECN Login: park1036
 # Due Date: 2/23
 
-# py AES.py -e message.txt key.txt encrypted.txt
-# py AES.py -d encrypted.txt key.txt decrypted.txt
+# py AES4.py -e message.txt key.txt encrypted.txt
+# py AES4.py -d encrypted.txt key.txt decrypted.txt
 
 # Aspects of code modified from: https://github.com/brian-rieder/computer-security/blob/master/AES/aes.py
 #        roundkey generation, bitvector to state array
@@ -83,147 +83,56 @@ def array_to_bv(state_arr):
     return merged
 
 def encrypt(ptext_bv, _key):
-    print("Getting Roundkeys")
-    # generate key schedule + round keys
-    FILEIN = open(_key, 'r')
-    key = FILEIN.read().replace('\n','')
-    key_bv = BitVector(textstring=key)
-    key_words = gen_key_schedule_128(key_bv)
-    round_keys = [None for i in range(11)]
-    for i in range(11):
-        round_keys[i] = key_words[i*4] + key_words[i*4+1] + key_words[i*4+2] + key_words[i*4+3]
-
-    # empty bitvector
-    out_bv = BitVector(size=0)
-
-    # get the sbox for encryption
-    print("Getting SubBytes Table")
-    #subBytes = genTables('-e')
-
-    # initalize empty array
-    state_arr = [[0 for i in range(4)] for j in range(4)]
-
-    print("Starting AES Encryption") # TODO - check if 256-128 means that read 64 bits instead of 128W
-    # get 64 bit block from plaintext
-    while (ptext_bv.more_to_read):
-        part_bv = ptext_bv.read_bits_from_file(64)
-        # make sure it's 64 bits long
-        part_bv.pad_from_right(64-part_bv.length())
-        # xor with the first roundkey 
-        part_bv = part_bv ^ round_keys[0]                                 
-        # create the state array
-        for i in range(4):
-            for j in range(4):
-                # this is a bitvector -> 4x4 array instruction
-                state_arr[j][i] = part_bv[32*i + 8*j:32*i + 8*(j+1)] 
-        for rnd in range(1, 11):      
-            # each round has 4 steps: (256 bit key size = 14 rounds)
-            # 1. Single-byte based substitution 
-            for i in range(4):
-                for j in range(4):
-                    addTo = int(subBytes[int(state_arr[i][j])])
-                    state_arr[i][j] = BitVector(intVal=addTo, size=8)                   
-            # 2. Row-wise permutation 
-            state_arr[1] = state_arr[1][1:] + state_arr[1][:1]
-            state_arr[2] = state_arr[2][2:] + state_arr[2][:2]
-            state_arr[3] = state_arr[3][3:] + state_arr[3][:3]
-            
-            # 3. Column-wise mixing
-            if (rnd != 11):
-                state_arr = mix_cols(state_arr)
-                                          
-            # 4. Addition of the roundkey
-            state_bv = array_to_bv(state_arr)
-            state_bv = state_bv ^ round_keys[rnd]
-
-            # Making it a state array again                            
-            for i in range(4):
-                for j in range(4):
-                    # this is a bitvector -> 4x4 array instruction
-                    state_arr[j][i] = state_bv[32*i + 8*j:32*i + 8*(j+1)]
-        
-        # FILEOUT.write(state_bv.get_bitvector_in_hex())
-        out_bv += state_bv
-    print("\nFinished!")
-    return out_bv
-
-def decrypt(c_text_bv, _key): 
-    print("Getting Inverse Roundkeys")
-    # generate key schedule + round keys
-    FILEIN = open(_key, 'r')
-    key = FILEIN.read().replace('\n','')
-    key_bv = BitVector(textstring=key)
-    key_words = gen_key_schedule_128(key_bv)
-    round_keys = [None for i in range(11)]
-    for i in range(11):
-        round_keys[i] = key_words[i*4] + key_words[i*4+1] + key_words[i*4+2] + key_words[i*4+3]
-
-    # empty_bv
-    out_bv = BitVector(size=0)
-
-    # get the sbox for encryption
-    print("Getting Inverse SubBytes Table")
-    #subBytes = genTables('-e')
-
-    # initalize empty array
-    state_arr = [[0 for i in range(4)] for j in range(4)]
-
-    print("Starting AES Decryption")
-    # get 32 bit block from plaintext
-    while (1):
-        c_text_bv
-        if (c_text_bv.length() <= 0):
-            break
-        # make sure it's 32 bits long
-        c_text_bv.pad_from_right(32-c_text_bv.length())
-        # xor with the first roundkey 
-        c_text_bv = c_text_bv ^ round_keys[14]                                 
-        # create the state array
-        for i in range(4):
-            for j in range(4):
-                # this is a bitvector -> 4x4 array instruction
-                state_arr[j][i] = c_text_bv[32*i + 8*j:32*i + 8*(j+1)] 
-        for rnd in range(9, -1, -1):      
-            # each round has 4 steps: (128 bit key size = 14 rounds)
-            # 1. Inverse Row-wise permutation 
-            state_arr[1] = state_arr[1][-1:] + state_arr[1][:-1]
-            state_arr[2] = state_arr[2][-2:] + state_arr[2][:-2]
-            state_arr[3] = state_arr[3][-3:] + state_arr[3][:-3]
-            
-            # 2. Inverse Single-byte based substitution 
-            for i in range(4):
-                for j in range(4):
-                    addTo = int(invSubBytes[int(state_arr[i][j])])
-                    state_arr[i][j] = BitVector(intVal=addTo, size=8)                   
     
-            # 3. Addition of the roundkey
-            state_bv = array_to_bv(state_arr)
-            state_bv = state_bv ^ round_keys[rnd]
-            
-            if (rnd != 0):
-                # Making it a state array again                            
-                for i in range(4):
-                    for j in range(4):
-                        # this is a bitvector -> 4x4 array instruction
-                        state_arr[j][i] = state_bv[32*i + 8*j:32*i + 8*(j+1)]
-            
-                # 4. Inverse Column-wise mixing
-                state_arr = inv_mix_cols(state_arr)
-        out_bv += array_to_bv(state_arr)
-    print("\nFinished!")
-    return out_bv
+    # generate key schedule + round keys
+    FILEIN = open(_key, 'r')
+    key = FILEIN.read().replace('\n','')
+    key_bv = BitVector(textstring=key)
+    key_words = gen_key_schedule_256(key_bv)
+    round_keys = [None for i in range(15)]
+    for i in range(15):
+        round_keys[i] = key_words[i*4] + key_words[i*4+1] + key_words[i*4+2] + key_words[i*4+3]
+    
+    enc_block = AESctr(ptext_bv, round_keys)
+    
+    return enc_block
 
-def main():
-    if (len(sys.argv) != 5):
-        print("[ERROR] Usage Error")
-        sys.exit(0)
-    if (sys.argv[1] == '-e'):
-        # encrypt mode
-        print("Encrypting with AES...")
-        encrypt(sys.argv[2], sys.argv[3], sys.argv[4])
-    elif (sys.argv[1] == '-d'):
-        # decrypt mode
-        print("Decrypting with AES...")
-        decrypt(sys.argv[2], sys.argv[3], sys.argv[4])
+def AESctr(ptext_bv, round_keys):
+    # initalize empty array
+    state_arr = [[0 for i in range(4)] for j in range(4)]
+    # make sure it's 128 bits long
+    ptext_bv.pad_from_right(128-ptext_bv.length())
+    # xor with the first roundkey 
+    ptext_bv = ptext_bv ^ round_keys[0]                                 
+    # create the state array
+    for i in range(4):
+        for j in range(4):
+            # this is a bitvector -> 4x4 array instruction
+            state_arr[j][i] = ptext_bv[32*i + 8*j:32*i + 8*(j+1)] 
+    for rnd in range(1, 15):      
+        # each round has 4 steps: (256 bit key size = 14 rounds)
+        # 1. Single-byte based substitution 
+        for i in range(4):
+            for j in range(4):
+                addTo = int(subBytes[int(state_arr[i][j])])
+                state_arr[i][j] = BitVector(intVal=addTo, size=8)                   
+        # 2. Row-wise permutation 
+        state_arr[1] = state_arr[1][1:] + state_arr[1][:1]
+        state_arr[2] = state_arr[2][2:] + state_arr[2][:2]
+        state_arr[3] = state_arr[3][3:] + state_arr[3][:3]
 
-main()
+        # 3. Column-wise mixing
+        if (rnd != 14):
+            state_arr = mix_cols(state_arr)
+
+        # 4. Addition of the roundkey
+        state_bv = array_to_bv(state_arr)
+        state_bv = state_bv ^ round_keys[rnd]
+
+        # Making it a state array again                            
+        for i in range(4):
+            for j in range(4):
+                # this is a bitvector -> 4x4 array instruction
+                state_arr[j][i] = state_bv[32*i + 8*j:32*i + 8*(j+1)]
+
+    return state_bv

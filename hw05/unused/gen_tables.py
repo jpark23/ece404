@@ -19,7 +19,7 @@ invSubBytesTable = []                                               # for decryp
 def genTables(flag):
     c = BitVector(bitstring='01100011')
     d = BitVector(bitstring='00000101')
-    for i in range(0, 256):
+    for i in range(0, 256): 
         # For the encryption SBox
         a = BitVector(intVal = i, size=8).gf_MI(AES_modulus, 8) if i != 0 else BitVector(intVal=0)
         # For bit scrambling for the encryption SBox entries:
