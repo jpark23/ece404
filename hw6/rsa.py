@@ -5,10 +5,6 @@ from BitVector import *
 e = 65537 # defined from assignment doc
 e_bv = BitVector(intVal=65537)
 
-# py rsa.py -g p.txt q.txt
-# py rsa.py -e message.txt p.txt q.txt encrypted.txt
-# py rsa.py -d encrypted.txt p.txt q.txt decrypted.txt
-
 def gcd(x, y):
     if (x == 0):
         return y
@@ -32,14 +28,7 @@ def testPrime(prime):
         return 0
     return prime
 
-def generate(p_out, q_out):
-    # 1. generate two different primes p and q
-    p = getPrime()
-    while(1):
-        q = getPrime()
-        if (q != p):
-            break
-    
+def keygen(p, q, flag):
     # 2. calculate the modulus n = p * q 
     n = p * q
 
@@ -62,8 +51,42 @@ def generate(p_out, q_out):
 
     # 7. Private Key = [d, n]
     private = [d, n]
+
+    if (flag == 'all'):
+        return [e, d, n]
+    elif (flag == 'public'):
+        return public
+    elif (flag == 'private'):
+        return private
+
+def generate(p_out, q_out):
+    # 1. generate two different primes p and q
+    p = getPrime()
+    while(1):
+        q = getPrime()
+        if (q != p):
+            break
     
+    [e, d, n] = keygen(p, q)
+    
+    FILEOUTP = open(p_out, "w")
+    FILEOUTQ = open(q_out, "w")
+    FILEOUTP.write(str(p))
+    FILEOUTQ.write(str(q))
+    FILEOUTP.close()
+    FILEOUTQ.close()
     print("Gottem")
+
+def encrypt(messageFile, pFile, qFile, outFile):
+    FILEINp = open(pFile, 'r')
+    FILEINq = open(qFile, 'r')
+    p = int(FILEINp.read())
+    q = int(FILEINq.read())
+    [e, n] = keygen(p, q, 'public')
+    ptext_bv = BitVector(filename=messageFile)
+    e_bv = BitVector(intVal=e)
+    n_bv = BitVector(intVal=n)
+    # ctext_bv = ptext_bv ^ e_bv mod n_bv
 
 def main():
     if sys.argv[1] == '-g':
@@ -71,10 +94,14 @@ def main():
         generate(sys.argv[2], sys.argv[3])
     elif sys.argv[1] == '-e':
         print("Encrypting...")
+        encrypt(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     elif sys.argv[1] == '-d':
         print("Decrypting...")
     else:
         print("Something went wrong...")
         exit(1)
 
+# py rsa.py -g p1.txt q1.txt
+# py rsa.py -e message.txt p.txt q.txt encrypted.txt
+# py rsa.py -d encrypted.txt p.txt q.txt decrypted.txt
 main()
