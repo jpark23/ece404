@@ -21,7 +21,8 @@ def getPrime():
 
 def testPrime(prime):
     prime_bv = BitVector(intVal=prime)
-    if (prime_bv[0] == 0 or prime_bv[1] == 0):
+    leftmost = prime_bv.length()
+    if (prime_bv[leftmost] == 0 or prime_bv[leftmost-1] == 0):
         return 0
     test_gcd = gcd(prime-1, e)
     if (test_gcd != 1):
@@ -78,15 +79,43 @@ def generate(p_out, q_out):
     print("Gottem")
 
 def encrypt(messageFile, pFile, qFile, outFile):
+    ## (plain)^e mod n = cipher ##
+    FILEOUT = open(outFile, 'w')
     FILEINp = open(pFile, 'r')
     FILEINq = open(qFile, 'r')
     p = int(FILEINp.read())
     q = int(FILEINq.read())
     [e, n] = keygen(p, q, 'public')
-    ptext_bv = BitVector(filename=messageFile)
-    e_bv = BitVector(intVal=e)
-    n_bv = BitVector(intVal=n)
-    # ctext_bv = ptext_bv ^ e_bv mod n_bv
+    # e_bv = BitVector(intVal=e)
+    # n_bv = BitVector(intVal=n)
+    file_bv = BitVector(filename=messageFile)
+    while(file_bv.more_to_read):
+        ptext_bv = file_bv.read_bits_from_file(128)
+        ptext_bv.pad_from_right(128 - ptext_bv.length())
+        ptext_bv.pad_from_left(128)
+        assert(ptext_bv.length() == 256)
+        ctext = pow(ptext_bv.int_val(), e, n)
+        ctext_bv = BitVector(intVal=ctext)
+        FILEOUT.write(ctext_bv.get_bitvector_in_hex())
+    FILEOUT.close()
+    print("Done!")
+
+def decrypt(encFile, pFile, qFile, outFile):
+    PFILE = open(pFile, 'r')
+    QFILE = open(qFile, 'r')
+    FILEOUT = open(outFile, 'w')
+    # ctext ^ d mod n = ptext
+    p = int(PFILE.read())
+    q = int(QFILE.read())
+    [d, n] = keygen(p, q, 'private')
+    file_bv = BitVector(filename=encFile)
+    while(file_bv.more_to_read):
+        ctext_bv = file_bv.read_bits_from_file(256)
+        ptext = pow(ctext_bv.int_val(), d, n)
+        ptext_bv1 = BitVector(intVal=ptext)
+        [dontuse, ptext_bv] = ptext_bv1.divide_into_two()
+        FILEOUT.write(ptext_bv.get_bitvector_in_hex())
+    print("Done!")
 
 def main():
     if sys.argv[1] == '-g':
@@ -97,11 +126,12 @@ def main():
         encrypt(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     elif sys.argv[1] == '-d':
         print("Decrypting...")
+        decrypt(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     else:
         print("Something went wrong...")
         exit(1)
 
 # py rsa.py -g p1.txt q1.txt
 # py rsa.py -e message.txt p.txt q.txt encrypted.txt
-# py rsa.py -d encrypted.txt p.txt q.txt decrypted.txt
+# py rsa.py -d testfiles/test_encrypted.txt p.txt q.txt decrypted.txt
 main()
