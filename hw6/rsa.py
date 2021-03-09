@@ -131,10 +131,12 @@ def decrypt(encFile, pFile, qFile, outFile):
     p = int(PFILE.read())
     q = int(QFILE.read())
     [d, n] = keygen(p, q, 'private')
-    file_bv = BitVector(filename=encFile) # need to read an input hexstring
-    while(file_bv.more_to_read):
-        ctext_bv = file_bv.read_bits_from_file(256)
-        ctext_bv.pad_from_right(256 - ctext_bv.length())
+    FILEIN = open(encFile, 'r')
+    while(1):
+        read = FILEIN.read(64)
+        ctext_bv = BitVector(hexstring=read)
+        if (ctext_bv.length() <= 0):
+            break
         ptext_padded = crt(ctext_bv, d, p, q, n)
         [dontuse, ptext_bv] = ptext_padded.divide_into_two()
         FILEOUT.write(ptext_bv.get_bitvector_in_ascii())
