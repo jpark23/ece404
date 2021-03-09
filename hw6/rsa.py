@@ -89,31 +89,55 @@ def encrypt(messageFile, pFile, qFile, outFile):
     file_bv = BitVector(filename=messageFile)
     while(file_bv.more_to_read):
         ptext_bv = file_bv.read_bits_from_file(128)
-        if (ptext_bv.length() != 128):
-            ptext_bv.pad_from_right(128 - ptext_bv.length())
+        ptext_bv.pad_from_right(128 - ptext_bv.length())
         ptext_bv.pad_from_left(128)
-        assert(ptext_bv.length() == 256)
         ctext = pow(ptext_bv.int_val(), e, n)
         ctext_bv = BitVector(intVal=ctext, size=256)
+        ctext_bv.pad_from_right(256 - ctext_bv.length())
         FILEOUT.write(ctext_bv.get_bitvector_in_hex())
     FILEOUT.close()
     print("Done!")
+
+# the function below is taken from lecture notes
+def MI(num, mod):
+    '''
+    This function uses ordinary integer arithmetic implementation of the
+    Extended Euclid's Algorithm to find the MI of the first-arg integer
+    vis-a-vis the second-arg integer.
+    '''
+    NUM = num; MOD = mod
+    x, x_old = 0, 1
+    y, y_old = 1, 0
+    while mod:
+        q = num // mod
+        num, mod = mod, num % mod
+        x, x_old = x_old - q * x, x
+        y, y_old = y_old - q * y, y
+    MI = (x_old + MOD) % MOD
+    return MI
+
+def crt(ctext_bv, d, p, q, n):
+    Vp = pow(ctext_bv.int_val(), d, p)
+    Vq = pow(ctext_bv.int_val(), d, q)
+    Xp = q * (MI(q, p))
+    Xq = p * (MI(p, q))
+    ptext = ((Vp * Xp) + (Vq * Xq)) % n
+    return BitVector(intVal=ptext, size=256)
 
 def decrypt(encFile, pFile, qFile, outFile):
     PFILE = open(pFile, 'r')
     QFILE = open(qFile, 'r')
     FILEOUT = open(outFile, 'w')
-    # ctext ^ d mod n = ptext
     p = int(PFILE.read())
     q = int(QFILE.read())
     [d, n] = keygen(p, q, 'private')
-    file_bv = BitVector(filename=encFile)
+    file_bv = BitVector(filename=encFile) # need to read an input hexstring
     while(file_bv.more_to_read):
         ctext_bv = file_bv.read_bits_from_file(256)
-        ptext = pow(ctext_bv.int_val(), d, n)
-        ptext_bv1 = BitVector(intVal=ptext, size=256)
-        [dontuse, ptext_bv] = ptext_bv1.divide_into_two()
-        FILEOUT.write(ptext_bv.get_bitvector_in_hex())
+        ctext_bv.pad_from_right(256 - ctext_bv.length())
+        ptext_padded = crt(ctext_bv, d, p, q, n)
+        [dontuse, ptext_bv] = ptext_padded.divide_into_two()
+        FILEOUT.write(ptext_bv.get_bitvector_in_ascii())
     print("Done!")
 
 def main():
