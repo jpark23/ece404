@@ -86,16 +86,15 @@ def encrypt(messageFile, pFile, qFile, outFile):
     p = int(FILEINp.read())
     q = int(FILEINq.read())
     [e, n] = keygen(p, q, 'public')
-    # e_bv = BitVector(intVal=e)
-    # n_bv = BitVector(intVal=n)
     file_bv = BitVector(filename=messageFile)
     while(file_bv.more_to_read):
         ptext_bv = file_bv.read_bits_from_file(128)
-        ptext_bv.pad_from_right(128 - ptext_bv.length())
+        if (ptext_bv.length() != 128):
+            ptext_bv.pad_from_right(128 - ptext_bv.length())
         ptext_bv.pad_from_left(128)
         assert(ptext_bv.length() == 256)
         ctext = pow(ptext_bv.int_val(), e, n)
-        ctext_bv = BitVector(intVal=ctext)
+        ctext_bv = BitVector(intVal=ctext, size=256)
         FILEOUT.write(ctext_bv.get_bitvector_in_hex())
     FILEOUT.close()
     print("Done!")
@@ -112,7 +111,7 @@ def decrypt(encFile, pFile, qFile, outFile):
     while(file_bv.more_to_read):
         ctext_bv = file_bv.read_bits_from_file(256)
         ptext = pow(ctext_bv.int_val(), d, n)
-        ptext_bv1 = BitVector(intVal=ptext)
+        ptext_bv1 = BitVector(intVal=ptext, size=256)
         [dontuse, ptext_bv] = ptext_bv1.divide_into_two()
         FILEOUT.write(ptext_bv.get_bitvector_in_hex())
     print("Done!")
