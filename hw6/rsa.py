@@ -21,8 +21,9 @@ def getPrime():
 
 def testPrime(prime):
     prime_bv = BitVector(intVal=prime)
-    leftmost = prime_bv.length()
-    if (prime_bv[leftmost] == 0 or prime_bv[leftmost-1] == 0):
+    firstBit = prime_bv[2:][0]
+    secondBit = prime_bv[2:][1]
+    if (firstBit == 0 or secondBit == 0):
         return 0
     test_gcd = gcd(prime-1, e)
     if (test_gcd != 1):
@@ -68,7 +69,7 @@ def generate(p_out, q_out):
         if (q != p):
             break
     
-    [e, d, n] = keygen(p, q)
+    [e, d, n] = keygen(p, q, 'all')
     
     FILEOUTP = open(p_out, "w")
     FILEOUTQ = open(q_out, "w")
@@ -76,7 +77,6 @@ def generate(p_out, q_out):
     FILEOUTQ.write(str(q))
     FILEOUTP.close()
     FILEOUTQ.close()
-    print("Gottem")
 
 def encrypt(messageFile, pFile, qFile, outFile):
     ## (plain)^e mod n = cipher ##
