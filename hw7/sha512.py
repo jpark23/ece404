@@ -34,7 +34,7 @@ def msg_schedule(words, padded_bv):
         sigma1 = (i_minus_2_word.deep_copy() >> 17) ^ (i_minus_2_word.deep_copy() >> 19) ^ (i_minus_2_word.deep_copy().shift_right(10))
         words[i] = BitVector(intVal=(int(words[i-16]) + int(sigma1) + int(words[i-7]) + int(sigma0)) & 0xFFFFFFFFFFFFFFFF, size=64)
     return words
-
+# TODO - change rnd_processing ROTR values?
 def rnd_processing(words):
     #  The K constants (also referred to as the "round constants") are used in round-based processing 
     #  of each 1024-bit input message block.  There is a 64-bit constant for each of the 80 rounds. 
@@ -65,14 +65,14 @@ def rnd_processing(words):
     #  Store the 80 K constants as an array of BitVector objects:
     K_bv = [BitVector(hexstring = k_constant) for k_constant in K]
 
-    h0 = BitVector(hexstring='6a09e667')
-    h1 = BitVector(hexstring='bb67ae85')
-    h2 = BitVector(hexstring='3c6ef372')
-    h3 = BitVector(hexstring='a54ff53a')
-    h4 = BitVector(hexstring='510e527f')
-    h5 = BitVector(hexstring='9b05688c')
-    h6 = BitVector(hexstring='1f83d9ab')
-    h7 = BitVector(hexstring='5be0cd19')
+    h0 = BitVector(hexstring='6a09e667f3bcc908')
+    h1 = BitVector(hexstring='bb67ae8584caa73b')
+    h2 = BitVector(hexstring='3c6ef372fe94f82b')
+    h3 = BitVector(hexstring='a54ff53a5f1d36f1')
+    h4 = BitVector(hexstring='510e527fade682d1')
+    h5 = BitVector(hexstring='9b05688c2b3e6c1f')
+    h6 = BitVector(hexstring='1f83d9abfb41bd6b')
+    h7 = BitVector(hexstring='5be0cd19137e2179')
     a,b,c,d,e,f,g,h = h0,h1,h2,h3,h4,h5,h6,h7
 
     for i in range(80):
@@ -96,14 +96,14 @@ def update_hash(a,b,c,d,e,f,g,h):
     #  The 8 32-words used for initializing the 512-bit hash buffer before we start scanning the
     #  input message block for its hashing. See page 13 (page 17 of the PDF) of the NIST standard.
     #  Note that the hash buffer consists of 8 32-bit words named h0, h1, h2, h3, h4, h5, h6, and h7.
-    h0 = BitVector(hexstring='6a09e667')
-    h1 = BitVector(hexstring='bb67ae85')
-    h2 = BitVector(hexstring='3c6ef372')
-    h3 = BitVector(hexstring='a54ff53a')
-    h4 = BitVector(hexstring='510e527f')
-    h5 = BitVector(hexstring='9b05688c')
-    h6 = BitVector(hexstring='1f83d9ab')
-    h7 = BitVector(hexstring='5be0cd19')
+    h0 = BitVector(hexstring='6a09e667f3bcc908')
+    h1 = BitVector(hexstring='bb67ae8584caa73b')
+    h2 = BitVector(hexstring='3c6ef372fe94f82b')
+    h3 = BitVector(hexstring='a54ff53a5f1d36f1')
+    h4 = BitVector(hexstring='510e527fade682d1')
+    h5 = BitVector(hexstring='9b05688c2b3e6c1f')
+    h6 = BitVector(hexstring='1f83d9abfb41bd6b')
+    h7 = BitVector(hexstring='5be0cd19137e2179')
     h0 = BitVector( intVal = (int(h0) + int(a)) & 0xFFFFFFFFFFFFFFFF, size=64 )
     h1 = BitVector( intVal = (int(h1) + int(b)) & 0xFFFFFFFFFFFFFFFF, size=64 )
     h2 = BitVector( intVal = (int(h2) + int(c)) & 0xFFFFFFFFFFFFFFFF, size=64 )
