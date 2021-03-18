@@ -76,4 +76,15 @@ def main():
 
 import sys
 import BitVector
-main()
+#main()
+# Jason Park
+ex = 65534/65535
+N = 1
+while(1):
+    x = N * N-1 /2
+    prob = 1 - pow(ex, x)
+    if (prob == 1):
+        break
+    N += 1
+print(N)
+
