@@ -30,13 +30,13 @@ class TcpAttack:
             except:
                 sys.stdout.write(".")                                                
                 sys.stdout.flush() 
-        OUTFILE = open("openports.txt", 'w')
-        if not open_ports:
-            print("\n\nNo open ports in the range specified\n")
-        else:
-            for k in open_ports:
-                OUTFILE.write("%s\n" % open_ports[k])
-        OUTFILE.close()
+        # OUTFILE = open("openports.txt", 'w')
+        # if not open_ports:
+        #     print("\n\nNo open ports in the range specified\n")
+        # else:
+        #     for k in open_ports:
+        #         OUTFILE.write("%s\n" % open_ports[k])
+        # OUTFILE.close()
 
     #####################################
     # port = int designating attack port
