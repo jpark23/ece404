@@ -4,6 +4,10 @@ from scapy.all import *
 from scapy.layers.inet import IP, TCP
 import socket
 
+###########################################################################################
+# This code is taken and modified from Professor Kak's implementations port_scan and DOS  #
+###########################################################################################
+
 class TcpAttack:
     #spoofIP: string containing the IP addy to spoof
     #targetIP: string containing the IP addy to attack
@@ -30,13 +34,6 @@ class TcpAttack:
             except:
                 sys.stdout.write(".")                                                
                 sys.stdout.flush() 
-        # OUTFILE = open("openports.txt", 'w')
-        # if not open_ports:
-        #     print("\n\nNo open ports in the range specified\n")
-        # else:
-        #     for k in open_ports:
-        #         OUTFILE.write("%s\n" % open_ports[k])
-        # OUTFILE.close()
 
     #####################################
     # port = int designating attack port
