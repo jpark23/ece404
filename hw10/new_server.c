@@ -17,6 +17,11 @@
 // where 9000 is the port you want your server to monitor.  Of course,
 // this can be any high-numbered that is not currently being used by others.
 
+// Homework 10
+// Jason Park 
+// park1036 
+// 4/15/2021
+
 #include <stdio.h> 
 #include <stdlib.h> 
 #include <errno.h> 
@@ -118,7 +123,13 @@ char * clientComm(int clntSockfd,int * senderBuffSize_addr, int * optlen_addr){
         exit(1);
     }    
 
-    strcpy(str, recvBuff);
+    // This check here dumps the program if the entered string is too large and would cause overflow
+    if (strlen(recvBuff) <= MAX_DATA_SIZE) {
+        fprintf(stderr, "ERROR, you're trying to buffer overflow attack arent ya!!\n");
+        exit(1);
+    }
+    // strcpy(str, recvBuff); -> vulerable
+    strncpy(str, recvBuff, MAX_DATA_SIZE); // not vulnerable
 	
     /* send data to the client */
     if (send(clntSockfd, str, strlen(str), 0) == -1) {

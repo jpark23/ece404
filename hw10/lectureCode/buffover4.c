@@ -5,6 +5,7 @@
 // the function foo() can be used to cause the execution 
 // of bar() even though there is no explicit call to bar()
 // anywhere in the code shown below.
+// -fno-stack-protector
 
 #include <stdio.h>
 #include <string.h>
