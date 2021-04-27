@@ -12,7 +12,7 @@ LOG="New message log:$EOL"
 LOG=`perl GET_MESSAGE_INDEX`
 LOG="$EOL"
 
-# Jason Park 
+# Jason Park
 # park1036
 # 4/27/2021
 
@@ -48,7 +48,7 @@ recipe_3/
 ## junkMail 67-74
 ## single recipe with compound rules
 # started with the example under #4,
-# went one by one, and eventually hit the perfect  recipe
+# went one by one, and eventually hit the perfect recipe
 :0 HB:
 * ^Content-Type: text/plain;
 * ^Content-Type: text/html
